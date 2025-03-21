@@ -1,4 +1,3 @@
-
 #!/bin/bash
 # 定义颜色
 re="\033[0m"
@@ -24,14 +23,14 @@ export reset=${reset:-''}
 export resport=${resport:-''}
 
 devil binexec on >/dev/null 2>&1
-USERNAME=$(whoami | tr '[:upper:]' '[:lower:]')
+#USERNAME=$(whoami | tr '[:upper:]' '[:lower:]')
+USERNAME=$(whoami)
 HOSTNAME=$(hostname)
 snb=$(hostname | cut -d. -f1)
 nb=$(hostname | cut -d '.' -f 1 | tr -d 's')
 if [[ "$reset" =~ ^[Yy]$ ]]; then
 bash -c 'ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk "{print \$2}" | xargs -r kill -9 >/dev/null 2>&1' >/dev/null 2>&1
-devil www del ${snb}.${USERNAME}.serv00.net > /dev/null 2>&1
-devil www del ${USERNAME}.serv00.net > /dev/null 2>&1
+devil www list | awk 'NR > 1 && NF {print $1}' | xargs -I {} devil www del {} > /dev/null 2>&1
 sed -i '/export PATH="\$HOME\/bin:\$PATH"/d' "${HOME}/.bashrc" >/dev/null 2>&1
 source "${HOME}/.bashrc" >/dev/null 2>&1
 find ~ -type f -exec chmod 644 {} \; 2>/dev/null
@@ -218,7 +217,7 @@ export hy2_port=$udp_port
 
 get_argodomain() {
   if [[ -n $ARGO_AUTH ]]; then
-    echo "$ARGO_DOMAIN" > gdym.log
+    echo "$ARGO_DOMAIN" > ARGO_DOMAIN.log
     echo "$ARGO_DOMAIN"
   else
     local retry=0
@@ -1160,6 +1159,10 @@ curl -sL https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/index.html
 V2rayN_LINK="https://${USERNAME}.serv00.net/${UUID}_v2sub.txt"
 Clashmeta_LINK="https://${USERNAME}.serv00.net/${UUID}_clashmeta.txt"
 Singbox_LINK="https://${USERNAME}.serv00.net/${UUID}_singbox.txt"
+hyp=$(jq -r '.inbounds[0].listen_port' config.json)
+vlp=$(jq -r '.inbounds[3].listen_port' config.json)
+vmp=$(jq -r '.inbounds[4].listen_port' config.json)
+showuuid=$(jq -r '.inbounds[0].users[0].password' config.json)
 cat > list.txt <<EOF
 =================================================================================================
 
@@ -1168,6 +1171,13 @@ cat > list.txt <<EOF
 $(dig @8.8.8.8 +time=5 +short "web$nb.serv00.com" | sort -u)
 $(dig @8.8.8.8 +time=5 +short "$HOSTNAME" | sort -u)
 $(dig @8.8.8.8 +time=5 +short "cache$nb.serv00.com" | sort -u)
+
+当前各协议正在使用的端口如下
+vless-reality端口：$vlp
+Vmess-ws端口(设置Argo固定域名端口)：$vmp
+Hysteria2端口：$hyp
+
+UUID密码：$showuuid
 -------------------------------------------------------------------------------------------------
 
 一、Vless-reality分享链接如下：

@@ -9,7 +9,8 @@ green() { echo -e "\e[1;32m$1\033[0m"; }
 yellow() { echo -e "\e[1;33m$1\033[0m"; }
 purple() { echo -e "\e[1;35m$1\033[0m"; }
 reading() { read -p "$(red "$1")" "$2"; }
-USERNAME=$(whoami | tr '[:upper:]' '[:lower:]')
+#USERNAME=$(whoami | tr '[:upper:]' '[:lower:]')
+USERNAME=$(whoami)
 snb=$(hostname | cut -d. -f1)
 nb=$(hostname | cut -d '.' -f 1 | tr -d 's')
 HOSTNAME=$(hostname)
@@ -53,7 +54,7 @@ read_uuid() {
 }
 
 read_reym() {
-	yellow "方式一：(推荐)使用${hona}自带域名，不支持proxyip功能：输入回车"
+	yellow "方式一：(推荐)使用Serv00/Hostuno自带域名，不支持proxyip功能：输入回车"
         yellow "方式二：使用CF域名(www.speedtest.net)，支持proxyip+非标端口反代ip功能：输入s"
         yellow "方式三：支持其他域名，注意要符合reality域名规则：输入域名"
         reading "请输入reality域名 【请选择 回车 或者 s 或者 输入域名】: " reym
@@ -82,7 +83,7 @@ if [[ -e $WORKDIR/config.json ]]; then
 hyp=$(jq -r '.inbounds[0].listen_port' $WORKDIR/config.json)
 vlp=$(jq -r '.inbounds[3].listen_port' $WORKDIR/config.json)
 vmp=$(jq -r '.inbounds[4].listen_port' $WORKDIR/config.json)
-purple "检测到${hona}-sb-yg脚本已安装，执行端口替换，请稍等……"
+purple "检测到Serv00/Hostuno-sb-yg脚本已安装，执行端口替换，请稍等……"
 sed -i '' "12s/$hyp/$hy2_port/g" $WORKDIR/config.json
 sed -i '' "33s/$hyp/$hy2_port/g" $WORKDIR/config.json
 sed -i '' "54s/$hyp/$hy2_port/g" $WORKDIR/config.json
@@ -212,7 +213,7 @@ sleep 2
         get_links
 	cd
         purple "************************************************************"
-        purple "${hona}-sb-yg脚本安装结束"
+        purple "Serv00/Hostuno-sb-yg脚本安装结束"
 	purple "退出SSH"
 	purple "请再次连接SSH，查看主菜单，请输入快捷方式：sb"
 	purple "************************************************************"
@@ -225,11 +226,11 @@ uninstall_singbox() {
     case "$choice" in
        [Yy])
 	  bash -c 'ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk "{print \$2}" | xargs -r kill -9 >/dev/null 2>&1' >/dev/null 2>&1
-          rm -rf domains bin serv00keep.sh webport.sh
+          rm -rf bin serv00keep.sh webport.sh
 	  sed -i '' '/export PATH="\$HOME\/bin:\$PATH"/d' ~/.bashrc
           source ~/.bashrc
           purple "************************************************************"
-          purple "${hona}-sb-yg卸载完成！"
+          purple "Serv00/Hostuno-sb-yg卸载完成！"
           purple "欢迎继续使用脚本：bash <(curl -Ls https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/serv00.sh)"
           purple "************************************************************"
           ;;
@@ -239,16 +240,15 @@ uninstall_singbox() {
 }
 
 kill_all_tasks() {
-reading "\n清理所有进程并清空所有安装内容，将退出ssh连接，确定继续清理吗？【y/n】: " choice
+reading "\n注意！！！清理所有进程并清空所有安装内容，将退出ssh连接，确定继续清理吗？【y/n】: " choice
   case "$choice" in
     [Yy]) 
     bash -c 'ps aux | grep $(whoami) | grep -v "sshd\|bash\|grep" | awk "{print \$2}" | xargs -r kill -9 >/dev/null 2>&1' >/dev/null 2>&1
-    devil www del ${snb}.${USERNAME}.${address} > /dev/null 2>&1
-    devil www del ${USERNAME}.${address} > /dev/null 2>&1
+    devil www list | awk 'NR > 1 && NF {print $1}' | xargs -I {} devil www del {} > /dev/null 2>&1
     sed -i '' '/export PATH="\$HOME\/bin:\$PATH"/d' ~/.bashrc
     source ~/.bashrc
     purple "************************************************************"
-    purple "${hona}-sb-yg清理重置完成！"
+    purple "Serv00/Hostuno-sb-yg清理重置完成！"
     purple "欢迎继续使用脚本：bash <(curl -Ls https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/serv00.sh)"
     purple "************************************************************"
     find ~ -type f -exec chmod 644 {} \; 2>/dev/null
@@ -274,14 +274,15 @@ argo_configure() {
     fi
     if [[ "$argo_choice" == "g" || "$argo_choice" == "G" ]]; then
         reading "请输入argo固定隧道域名: " ARGO_DOMAIN
-	echo "$ARGO_DOMAIN" > ARGO_DOMAIN.log
+	echo "$ARGO_DOMAIN" | tee ARGO_DOMAIN.log ARGO_DOMAIN_show.log > /dev/null
         green "你的argo固定隧道域名为: $ARGO_DOMAIN"
         reading "请输入argo固定隧道密钥（当你粘贴Token时，必须以ey开头）: " ARGO_AUTH
-	echo "$ARGO_AUTH" > ARGO_AUTH.log
+	echo "$ARGO_AUTH" | tee ARGO_AUTH.log ARGO_AUTH_show.log > /dev/null
         green "你的argo固定隧道密钥为: $ARGO_AUTH"
 	rm -rf boot.log
     else
         green "使用Argo临时隧道"
+	rm -rf ARGO_AUTH.log ARGO_DOMAIN.log
     fi
     break
 done
@@ -581,7 +582,7 @@ if ! pgrep -x "$(cat sb.txt)" > /dev/null; then
 red "主进程未启动，根据以下情况一一排查"
 yellow "1、选择8重置端口，自动生成随机可用端口（重要）"
 yellow "2、选择9重置"
-yellow "3、当前${hona}服务器炸了？等会再试"
+yellow "3、当前Serv00/Hostuno服务器炸了？等会再试"
 red "4、以上都试了，哥直接躺平，交给进程保活，过会再来看"
 sleep 6
 fi
@@ -1094,7 +1095,6 @@ rules:
   
 EOF
 
-sleep 2
 v2sub=$(cat jh.txt)
 echo "$v2sub" > ${FILE_PATH}/${UUID}_v2sub.txt
 cat clash_meta.yaml > ${FILE_PATH}/${UUID}_clashmeta.txt
@@ -1102,6 +1102,10 @@ cat sing_box.json > ${FILE_PATH}/${UUID}_singbox.txt
 V2rayN_LINK="https://${USERNAME}.${address}/${UUID}_v2sub.txt"
 Clashmeta_LINK="https://${USERNAME}.${address}/${UUID}_clashmeta.txt"
 Singbox_LINK="https://${USERNAME}.${address}/${UUID}_singbox.txt"
+hyp=$(jq -r '.inbounds[0].listen_port' config.json)
+vlp=$(jq -r '.inbounds[3].listen_port' config.json)
+vmp=$(jq -r '.inbounds[4].listen_port' config.json)
+showuuid=$(jq -r '.inbounds[0].users[0].password' config.json)
 cat > list.txt <<EOF
 =================================================================================================
 
@@ -1110,6 +1114,13 @@ cat > list.txt <<EOF
 $(dig @8.8.8.8 +time=5 +short "web$nb.${hona}.com" | sort -u)
 $(dig @8.8.8.8 +time=5 +short "$HOSTNAME" | sort -u)
 $(dig @8.8.8.8 +time=5 +short "cache$nb.${hona}.com" | sort -u)
+
+当前各协议正在使用的端口如下
+vless-reality端口：$vlp
+Vmess-ws端口(设置Argo固定域名端口)：$vmp
+Hysteria2端口：$hyp
+
+UUID密码：$showuuid
 -------------------------------------------------------------------------------------------------
 
 一、Vless-reality分享链接如下：
@@ -1128,8 +1139,8 @@ CF节点落地到CF网站的地区为：$IP所在地区
 CF节点的TLS必须开启
 CF节点落地到非CF网站的地区为：$IP所在地区
 
-注：如果${hona}的IP被墙，proxyip依旧有效，但用于客户端地址与端口的非标端口反代IP将不可用
-注：可能有大佬会扫${hona}的反代IP作为其共享IP库或者出售，请慎重将reality域名设置为CF域名
+注：如果Serv00/Hostuno的IP被墙，proxyip依旧有效，但用于客户端地址与端口的非标端口反代IP将不可用
+注：可能有大佬会扫Serv00/Hostuno的反代IP作为其共享IP库或者出售，请慎重将reality域名设置为CF域名
 -------------------------------------------------------------------------------------------------
 
 
@@ -1329,15 +1340,15 @@ resargo(){
 if [[ -e $WORKDIR/config.json ]]; then
 cd $WORKDIR
 argogdshow(){
-if [ -f ARGO_AUTH.log ]; then
 echo
+if [ -f ARGO_AUTH_show.log ]; then
 argoport=$(jq -r '.inbounds[4].listen_port' config.json)
 purple "如果你想设置原先的Argo固定隧道，请明确以下三点"
-purple "1：已设置Argo固定域名：$(cat ARGO_DOMAIN.log)"
-purple "2：固定隧道token：$(cat ARGO_AUTH.log)"
+purple "1：已设置Argo固定域名：$(cat ARGO_DOMAIN_show.log)"
+purple "2：固定隧道token：$(cat ARGO_AUTH_show.log)"
 purple "3：检查CF官网的ARGO固定隧道端口：$argoport"
-echo
 fi
+echo
 }
 if [ -f boot.log ]; then
 green "当前正在使用Argo临时隧道"
@@ -1350,17 +1361,17 @@ argo_configure
 ps aux | grep '[t]unnel --u' | awk '{print $2}' | xargs -r kill -9 > /dev/null 2>&1
 ps aux | grep '[t]unnel --n' | awk '{print $2}' | xargs -r kill -9 > /dev/null 2>&1
 agg=$(cat ag.txt)
-if [[ ! -f boot.log ]] && [[ "$argo_choice" =~ (G|g) ]]; then
+if [[ "$argo_choice" =~ (G|g) ]]; then
 if [ "$hona" = "serv00" ]; then
-sed -i '' -e "15s|''|'$(cat ARGO_DOMAIN.log)'|" ~/serv00keep.sh
-sed -i '' -e "16s|''|'$(cat ARGO_AUTH.log)'|" ~/serv00keep.sh
+sed -i '' -e "15s|''|'$(cat ARGO_DOMAIN_show.log)'|" ~/serv00keep.sh
+sed -i '' -e "16s|''|'$(cat ARGO_AUTH_show.log)'|" ~/serv00keep.sh
 fi
-args="tunnel --no-autoupdate run --token $(cat ARGO_AUTH.log)"
+args="tunnel --no-autoupdate run --token $(cat ARGO_AUTH_show.log)"
 else
 rm -rf boot.log
 if [ "$hona" = "serv00" ]; then
-sed -i '' -e "15s|'$(cat ARGO_DOMAIN.log)'|''|" ~/serv00keep.sh
-sed -i '' -e "16s|'$(cat ARGO_AUTH.log)'|''|" ~/serv00keep.sh
+sed -i '' -e "15s|'$(cat ARGO_DOMAIN_show.log)'|''|" ~/serv00keep.sh
+sed -i '' -e "16s|'$(cat ARGO_AUTH_show.log)'|''|" ~/serv00keep.sh
 fi
 args="tunnel --url http://localhost:$argoport --no-autoupdate --logfile boot.log --loglevel info"
 fi
@@ -1397,16 +1408,16 @@ menu() {
    green "甬哥Github项目  ：github.com/yonggekkk"
    green "甬哥Blogger博客 ：ygkkk.blogspot.com"
    green "甬哥YouTube频道 ：www.youtube.com/@ygkkk"
-   green "${hona}-sb-yg三协议共存：vless-reality、Vmess-ws(Argo)、Hy2"
+   green "Serv00/Hostuno三协议共存脚本：vless-reality/Vmess-ws(Argo)/Hy2"
    green "脚本快捷方式：sb"
    echo   "============================================================"
-   green  "1. 一键安装 ${hona}-sb-yg"
+   green  "1. 一键安装 Serv00/Hostuno-sb-yg"
    echo   "------------------------------------------------------------"
-   red    "2. 卸载删除 ${hona}-sb-yg"
+   red    "2. 卸载删除 Serv00/Hostuno-sb-yg"
    echo   "------------------------------------------------------------"
    green  "3. 重启主进程 (修复主节点)"
    echo   "------------------------------------------------------------"
-   green  "4. 切换并重启Argo临时/固定隧道"
+   green  "4. Argo 临时隧道与固定隧道相互切换"
    echo   "------------------------------------------------------------"
    green  "5. 更新脚本"
    echo   "------------------------------------------------------------"
@@ -1460,34 +1471,29 @@ insV=$(cat $WORKDIR/v 2>/dev/null)
 latestV=$(curl -sL https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/sversion | awk -F "更新内容" '{print $1}' | head -n 1)
 if [ -f $WORKDIR/v ]; then
 if [ "$insV" = "$latestV" ]; then
-echo -e "当前 ${hona}-sb-yg 脚本最新版：${purple}${insV}${re} (已安装)"
+echo -e "当前 Serv00/Hostuno-sb-yg 脚本最新版：${purple}${insV}${re} (已安装)"
 else
-echo -e "当前 ${hona}-sb-yg 脚本版本号：${purple}${insV}${re}"
-echo -e "检测到最新 ${hona}-sb-yg 脚本版本号：${yellow}${latestV}${re} (可选择5进行更新)"
+echo -e "当前 Serv00/Hostuno-sb-yg 脚本版本号：${purple}${insV}${re}"
+echo -e "检测到最新 Serv00/Hostuno-sb-yg 脚本版本号：${yellow}${latestV}${re} (可选择5进行更新)"
 echo -e "${yellow}$(curl -sL https://raw.githubusercontent.com/yonggekkk/sing-box-yg/main/sversion)${re}"
 fi
 echo -e "========================================================="
 sbb=$(cat $WORKDIR/sb.txt 2>/dev/null)
-showuuid=$(jq -r '.inbounds[0].users[0].password' $WORKDIR/config.json 2>/dev/null)
 if pgrep -x "$sbb" > /dev/null; then
 green "Sing-box主进程运行正常"
-green "UUID密码：$showuuid" 
 else
 yellow "Sing-box主进程启动失败，建议选择8重置端口，再选择9卸载重装"
 fi
-if [ -f "$WORKDIR/boot.log" ] && grep -q "trycloudflare.com" "$WORKDIR/boot.log"; then
+if [ -f "$WORKDIR/boot.log" ]; then
 argosl=$(cat "$WORKDIR/boot.log" 2>/dev/null | grep -a trycloudflare.com | awk 'NR==2{print}' | awk -F// '{print $2}' | awk '{print $1}')
 checkhttp=$(curl -o /dev/null -s -w "%{http_code}\n" "https://$argosl")
-[ "$checkhttp" -eq 404 ] && check="域名有效" || check="域名可能无效"
+[ "$checkhttp" -eq 404 ] && check="域名有效" || check="域名无效"
 green "Argo临时域名：$argosl  $check"
-fi
-if [ -f "$WORKDIR/boot.log" ] && ! grep -q "trycloudflare.com" "$WORKDIR/boot.log"; then
-yellow "Argo临时域名暂时不存在"
 fi
 if [ ! -f "$WORKDIR/boot.log" ]; then
 argogd=$(cat $WORKDIR/ARGO_DOMAIN.log 2>/dev/null)
 checkhttp=$(curl --max-time 2 -o /dev/null -s -w "%{http_code}\n" "https://$argogd")
-[ "$checkhttp" -eq 404 ] && check="域名有效" || check="域名可能无效"
+[ "$checkhttp" -eq 404 ] && check="域名有效" || check="域名无效"
 green "Argo固定域名：$argogd $check"
 fi
 if [ "$hona" = "serv00" ]; then
@@ -1495,8 +1501,8 @@ green "多功能主页如下 (支持保活、重启、重置端口、节点查�
 purple "http://${snb}.${USERNAME}.${hona}.net"
 fi
 else
-echo -e "当前 ${hona}-sb-yg 脚本版本号：${purple}${latestV}${re}"
-yellow "未安装 ${hona}-sb-yg 脚本！请选择 1 安装"
+echo -e "当前 Serv00/Hostuno-sb-yg 脚本版本号：${purple}${latestV}${re}"
+yellow "未安装 Serv00/Hostuno-sb-yg 脚本！请选择 1 安装"
 fi
    echo -e "========================================================="
    reading "请输入选择【0-9】: " choice
